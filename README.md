@@ -1,1 +1,1 @@
-# jgarm_church_webpagepage290926
+# www.jgarm.org
