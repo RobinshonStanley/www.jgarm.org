@@ -1,6 +1,11 @@
+
 name: Deploy Flutter Web
+
 on:
   push:
+    branches:
+      - main
+  pull_request:
     branches:
       - main
 
@@ -17,6 +22,36 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Extract latest JGARM website
+        run: |
+          set -euo pipefail
+
+          ZIP_FILE="$GITHUB_WORKSPACE/JGARM_CHURCH_WEBSITEFEDITION.zip"
+          EXTRACT_DIR="$RUNNER_TEMP/jgarm-website"
+
+          test -f "$ZIP_FILE"
+          mkdir -p "$EXTRACT_DIR"
+
+          unzip -q "$ZIP_FILE" -d "$EXTRACT_DIR"
+
+          PUBSPEC_FILE=$(find "$EXTRACT_DIR" -type f -name pubspec.yaml -print -quit)
+
+          if [ -z "$PUBSPEC_FILE" ]; then
+            echo "ERROR: No pubspec.yaml found in the ZIP."
+            exit 1
+          fi
+
+          PROJECT_DIR=$(dirname "$PUBSPEC_FILE")
+
+          if [ ! -f "$PROJECT_DIR/lib/main.dart" ]; then
+            echo "ERROR: Flutter project main.dart was not found."
+            exit 1
+          fi
+
+          echo "FLUTTER_PROJECT_DIR=$PROJECT_DIR" >> "$GITHUB_ENV"
+
+          echo "JGARM Flutter project located successfully."
+
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
@@ -24,17 +59,21 @@ jobs:
           channel: stable
 
       - name: Get dependencies
+        working-directory: ${{ env.FLUTTER_PROJECT_DIR }}
         run: flutter pub get
 
       - name: Build web
+        working-directory: ${{ env.FLUTTER_PROJECT_DIR }}
         run: flutter build web --release
 
       - name: Upload Pages artifact
+        if: github.event_name == 'push'
         uses: actions/upload-pages-artifact@v3
         with:
-          path: build/web
+          path: ${{ env.FLUTTER_PROJECT_DIR }}/build/web
 
   deploy:
+    if: github.event_name == 'push'
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
