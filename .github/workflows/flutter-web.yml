@@ -1,7 +1,11 @@
+
 name: Deploy Flutter Web
 
 on:
   push:
+    branches:
+      - main
+  pull_request:
     branches:
       - main
 
@@ -63,11 +67,13 @@ jobs:
         run: flutter build web --release
 
       - name: Upload Pages artifact
+        if: github.event_name == 'push'
         uses: actions/upload-pages-artifact@v3
         with:
           path: ${{ env.FLUTTER_PROJECT_DIR }}/build/web
 
   deploy:
+    if: github.event_name == 'push'
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
