@@ -66,6 +66,18 @@ jobs:
         working-directory: ${{ env.FLUTTER_PROJECT_DIR }}
         run: flutter build web --release
 
+      - name: Add robots.txt for search engines
+        working-directory: ${{ env.FLUTTER_PROJECT_DIR }}
+        run: |
+          cat > build/web/robots.txt <<'EOF'
+          User-agent: *
+          Allow: /
+
+          Sitemap: https://www.jgarm.org/sitemap.xml
+          EOF
+
+          echo "robots.txt added to the deployable website."
+
       - name: Upload Pages artifact
         if: github.event_name == 'push'
         uses: actions/upload-pages-artifact@v3
